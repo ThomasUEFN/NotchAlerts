@@ -1,0 +1,29 @@
+# Push a tag like v1.0 and GitHub builds NotchAlerts on a Mac and attaches
+# NotchAlerts.zip to a new release that anyone can download.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (Apple Silicon + Intel)
+        run: UNIVERSAL=1 bash build.sh
+
+      - name: Zip the app
+        run: ditto -c -k --keepParent build/NotchAlerts.app NotchAlerts.zip
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" NotchAlerts.zip \
+            --title "NotchAlerts $GITHUB_REF_NAME" --generate-notes
